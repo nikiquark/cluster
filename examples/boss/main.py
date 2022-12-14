@@ -48,10 +48,10 @@ def add_job(point: Point, segment: str) -> None:
     # make pbs for job
     seg.create_job(jobdir, jobname, cfg[CF.nodes_per_calc],
                    './lcode.cfg ./plasma-zshape-profile.txt',
-                   '~/lcode2d')
+                   '~/lcode2d/lcode')
 
     # run job
-    # seg.submit_job(jobdir)
+    seg.submit_job(jobdir)
     print(segment + ' submit job: ' + jobname)
 
     point.status = Status.CALCULATING
