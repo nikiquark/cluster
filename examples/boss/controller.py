@@ -1,62 +1,132 @@
-from sys import argv
+
+import sys
+from colorama import Fore, Style, Back
+from peewee import DoesNotExist
 
 from models import Config, CF, Point, Status
 
-commands = [i for i in dir(CF) if not i.startswith('__')]
+settings = [i for i in dir(CF) if not i.startswith('__')]
 
 
-def help():
-    for i in commands:
+def print_success(data):
+    print(f'{Fore.GREEN}✔{Fore.RESET}', data)
+
+
+def print_failure(data):
+    print(f'{Fore.RED}✖{Fore.RESET}', data)
+
+
+def set_param(key, value):
+    try:
+        param = Config.get(Config.key == key)
+    except DoesNotExist:
+        print_failure(
+            f'Parameter {Back.BLACK}{Style.BRIGHT}{key}{Style.RESET_ALL} does not exist')
+        return
+    param.value = value
+    param.save()
+    print_success(f"Set {key} to {value}")
+
+
+def help_handler(xs):
+    for i in settings:
         val = Config.get(Config.key == i).value
         comment = ''
         if i == CF.QUIT:
-            comment = f'({val}); 1 - stop boss'
+            comment = '1 - stop boss'
         elif i == CF.delay:
-            comment = f'({val}); delay between iterations in seconds'
+            comment = 'delay between iterations in seconds'
         elif i == CF.free_amd:
-            comment = f'({val}); not use this amount of nodes of amd'
+            comment = 'not use this amount of nodes of amd'
         elif i == CF.free_intel:
-            comment = f'({val}); not use this amount of nodes of intel'
+            comment = 'not use this amount of nodes of intel'
         elif i == CF.nodes_per_calc:
-            comment = f'({val}); nodes for one job'
+            comment = 'nodes for one job'
 
-        print('\033[96m', f"{i:>15}", '\033[94m', comment, '\033[0m')
+        print(f"{Fore.CYAN}{i:<15}{Fore.GREEN}{val:5}{Fore.WHITE} {comment}{Style.RESET_ALL}")
+
+
+def set_handler(xs: list[str]):
+    assert len(xs) == 2
+    key, value = xs
+    assert value.isnumeric()
+    set_param(key, int(value))
+
+
+def mode_handler(xs):
+    assert len(xs) == 1
+    mode = xs[0]
+    if mode == 'kind':
+        cfg = {
+            'free_amd': 4,
+            'free_intel': 4
+        }
+    elif mode == 'angry':
+        cfg = {
+            'free_amd': 0,
+            'free_intel': 0
+        }
+    elif mode == 'normal':
+        cfg = {
+            'free_amd': 2,
+            'free_intel': 2
+        }
+    else:
+        print_failure(
+            f'Mode {Back.BLACK}{Style.BRIGHT}{mode}{Style.RESET_ALL} does not exist')
+        return
+    for k, v in cfg.items():
+        set_param(k, v)
+
+def process_status(status: int) -> str:
+    if status == Status.PENDING:
+        return "PENDING"
+    if status == Status.CALCULATING:
+        return f"{Fore.YELLOW}CALCULATING{Fore.RESET}"
+    if status == Status.SUCCESS:
+        return f"{Fore.GREEN}SUCCESS{Fore.RESET}"
+    return ""
+
+def points_handler(xs):
+    assert len(xs) == 1
+    mode = xs[0]
+    if mode == 'all':
+        points = Point.select()
+    elif mode == 'pending':
+        points = Point.select().where(
+            Point.status == Status.PENDING)
+    elif mode == 'calculating':
+        points = Point.select().where(
+            Point.status == Status.CALCULATING)
+    elif mode == 'success':
+        points = Point.select().where(
+            Point.status == Status.SUCCESS)
+    else:
+        print_failure(f'Incorrect mode: {mode}')
+        return
+    print(f'{"LEFT":10}| {"RIGHT":10}| {"STATUS":15}')
+    print('-'*30)
+    if not points:
+        print('No points')
+    for i in points:
+        print(f'{i.l:<10}| {i.r:<10}| {process_status(i.status):<15}')
+
+
+def command_handler():
+    argv = sys.argv[1:]
+    if len(argv) == 0:
+        return help_handler([])
+    comm = argv[0]
+    if comm == 'help':
+        return help_handler(argv[1:])
+    if comm == 'set':
+        return set_handler(argv[1:])
+    if comm == 'mode':
+        return mode_handler(argv[1:])
+    if comm == 'points':
+        return points_handler(argv[1:])
+    return help_handler([])
 
 
 if __name__ == '__main__':
-    if len(argv) > 1:
-        comm = argv[1]
-        if comm == 'set':
-            key = argv[2]
-            value = int(argv[3])
-            if key in commands:
-                cf = Config.get(Config.key == key)
-                cf.value = value
-                cf.save()
-                print('set '
-                      f'\033[1m\033[92m{key}\033[0m'
-                      ' to '
-                      f'\033[1m\033[95m{value}\033[0m', sep='')
-        if comm == 'help':
-            help()
-        if comm == 'points':
-            spec = argv[2]
-            if spec == 'all':
-                points = Point.select()
-            if spec == 'pending':
-                points = Point.select().where(
-                    Point.status == Status.PENDING)
-            if spec == 'calculating':
-                points = Point.select().where(
-                    Point.status == Status.CALCULATING)
-            if spec == 'success':
-                points = Point.select().where(
-                    Point.status == Status.SUCCESS)
-            print("LEFT", "RIGHT", "STATUS", sep='\t|\t', end='\n\n')
-            for i in points:
-                print(i.l, i.r, "\033[96mPENDING\033[0m" if i.status == Status.PENDING else
-                      "\033[93mCALCULATING\033[0m" if i.status == Status.CALCULATING else
-                      "\033[92mSUCCESS\033[0m" if i.status == Status.SUCCESS else "", sep='\t|\t')
-
-    else:
-        help()
+    command_handler()
