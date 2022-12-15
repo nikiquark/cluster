@@ -141,7 +141,7 @@ if __name__ == '__main__':
                 add_job(aspt, 'amd')
             except peewee.DoesNotExist:
                 pass
-        for i in range(n_amd):
+        for i in range(n_intel):
             try:
                 aspt = Point.get(Point.status == Status.PENDING)
                 add_job(aspt, 'intel')
