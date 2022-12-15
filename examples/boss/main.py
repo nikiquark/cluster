@@ -3,10 +3,17 @@ import peewee
 from models import Point, Status, CF, Config
 from cluster import Matrosov
 from cluster.matrosov.models import Segment
+from cluster.matrosov import Commands
+from colorama import Fore
+
 
 m = Matrosov()
 workdir = '/home/yarygova_v/nikita/grid/'
 templatedir = workdir + 'template/'
+
+
+def print_failure(data):
+    print(f'{Fore.RED}✖{Fore.RESET}', data)
 
 
 def name(left: float, right: float) -> str:
@@ -58,65 +65,81 @@ def add_job(point: Point, segment: str) -> None:
     point.save()
 
 
-while True:
-    cfg = load_cfg()
-    if cfg[CF.QUIT]:
-        break
+def check_success(jobname):
+    jobdir = workdir + f'{jobname}/'
+    files = m.run(Commands.ls)
+    if 'success' not in files:
+        print_failure(f"Problem with job: {jobname}")
+        m.execute(f'rm -r {workdir}{jobdir}')
+        l, r = unname(jobname)
+        cur_point = Point.select().where(Point.l == l).where(Point.r == r).get()
+        cur_point.status = Status.PENDING
+        cur_point.save()
+        return True
+    return False
 
-    # update cluster
-    m.update()
-
-    # check success jobs
-    active_jobs = [i.jobname for i in m.amd.jobs +
-                   m.intel.jobs if i.status != 'C']
-    calculating_jobs = [name(i.l, i.r) for i in Point.select().where(
-        Point.status == Status.CALCULATING)]
-    finished = set(calculating_jobs) - set(active_jobs)
-    for i in finished:
-        # TODO: run PAE calculating
-        l, r = unname(i)
-        p = Point.select().where(Point.l == l).where(Point.r == r).get()
-        p.status = Status.SUCCESS
-        p.save()
-
-    # add new jobs
-    pending_jobs = Point.select().where(Point.status == Status.PENDING)
-    free_amd = m.amd.nodes_info.free
-    free_intel = m.intel.nodes_info.free
-
-    n_intel = (free_intel - cfg[CF.free_intel]) // cfg[CF.nodes_per_calc]
-    n_amd = (free_amd - cfg[CF.free_amd]) // cfg[CF.nodes_per_calc]
-
-    for _ in range(n_intel):
-        # add job to intel
-        try:
-            aspt = Point.get(Point.status == Status.PENDING)
-            add_job(aspt, 'intel')
-        except peewee.DoesNotExist:
+if __name__ == '__main__':
+    while True:
+        cfg = load_cfg()
+        if cfg[CF.QUIT]:
             break
-    for _ in range(n_amd):
-        # add job to amd
-        try:
-            aspt = Point.get(Point.status == Status.PENDING)
-            add_job(aspt, 'amd')
-        except peewee.DoesNotExist:
-            break
-    
-    # Query job (angry mode)
-    query_amd = [i.jobname for i in m.amd.jobs if i.status == 'Q']
-    query_intel = [i.jobname for i in m.intel.jobs if i.status == 'Q']
-    if len(query_amd) < cfg[CF.query_amd]:
-        try:
-            aspt = Point.get(Point.status == Status.PENDING)
-            add_job(aspt, 'amd')
-        except peewee.DoesNotExist:
-            pass
-    if len(query_intel) < cfg[CF.query_intel]:
-        try:
-            aspt = Point.get(Point.status == Status.PENDING)
-            add_job(aspt, 'intel')
-        except peewee.DoesNotExist:
-            pass
 
-    print('.', end='', flush=True)
-    sleep(cfg[CF.delay])
+        # update cluster
+        m.update()
+
+        # check success jobs
+        active_jobs = [i.jobname for i in m.amd.jobs +
+                    m.intel.jobs if i.status != 'C']
+        calculating_jobs = [name(i.l, i.r) for i in Point.select().where(
+            Point.status == Status.CALCULATING)]
+        finished = set(calculating_jobs) - set(active_jobs)
+        for i in finished:
+            # TODO: run PAE calculating
+            if check_success(i):
+                continue
+            l, r = unname(i)
+            p = Point.select().where(Point.l == l).where(Point.r == r).get()
+            p.status = Status.SUCCESS
+            p.save()
+
+        # add new jobs
+        pending_jobs = Point.select().where(Point.status == Status.PENDING)
+        free_amd = m.amd.nodes_info.free
+        free_intel = m.intel.nodes_info.free
+
+        n_intel = (free_intel - cfg[CF.free_intel]) // cfg[CF.nodes_per_calc]
+        n_amd = (free_amd - cfg[CF.free_amd]) // cfg[CF.nodes_per_calc]
+
+        for _ in range(n_intel):
+            # add job to intel
+            try:
+                aspt = Point.get(Point.status == Status.PENDING)
+                add_job(aspt, 'intel')
+            except peewee.DoesNotExist:
+                break
+        for _ in range(n_amd):
+            # add job to amd
+            try:
+                aspt = Point.get(Point.status == Status.PENDING)
+                add_job(aspt, 'amd')
+            except peewee.DoesNotExist:
+                break
+
+        # Query job (angry mode)
+        query_amd = [i.jobname for i in m.amd.jobs if i.status == 'Q']
+        query_intel = [i.jobname for i in m.intel.jobs if i.status == 'Q']
+        if len(query_amd) < cfg[CF.query_amd]:
+            try:
+                aspt = Point.get(Point.status == Status.PENDING)
+                add_job(aspt, 'amd')
+            except peewee.DoesNotExist:
+                pass
+        if len(query_intel) < cfg[CF.query_intel]:
+            try:
+                aspt = Point.get(Point.status == Status.PENDING)
+                add_job(aspt, 'intel')
+            except peewee.DoesNotExist:
+                pass
+
+        print('.', end='', flush=True)
+        sleep(cfg[CF.delay])
