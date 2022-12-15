@@ -17,6 +17,10 @@ def print_failure(data):
     print(f'{Fore.RED}✖{Fore.RESET}', data)
 
 
+def print_success(data):
+    print(f'{Fore.GREEN}✔{Fore.RESET}', data)
+
+
 def name(left: float, right: float) -> str:
     return f"{int(left*100)}-{int(right*100)}"
 
@@ -60,7 +64,7 @@ def add_job(point: Point, segment: str) -> None:
 
     # run job
     seg.submit_job(jobdir)
-    print(segment + ' submit job: ' + jobname)
+    print_success(segment + ' submit job: ' + jobname)
 
     point.status = Status.CALCULATING
     point.save()
