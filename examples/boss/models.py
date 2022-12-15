@@ -34,6 +34,8 @@ class CF:
     delay = 'delay'
     free_amd = 'free_amd'
     free_intel = 'free_intel'
+    query_amd = 'query_amd'
+    query_intel = 'query_intel'
 
 
 if __name__ == "__main__":
@@ -50,3 +52,8 @@ if __name__ == "__main__":
     Config.create(key=CF.delay, value=300)
     Config.create(key=CF.free_amd, value=2)
     Config.create(key=CF.free_intel, value=2)
+    Config.create(key=CF.query_intel, value=0)
+    Config.create(key=CF.query_amd, value=0)
+
+
+

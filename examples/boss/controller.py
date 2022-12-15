@@ -42,6 +42,10 @@ def help_handler(xs):
             comment = 'not use this amount of nodes of intel'
         elif i == CF.nodes_per_calc:
             comment = 'nodes for one job'
+        elif i == CF.query_amd:
+            comment = 'jobs in query on amd'
+        elif i == CF.query_intel:
+            comment = 'jobs in query on intel'
 
         print(f"{Fore.CYAN}{i:<15}{Fore.GREEN}{val:5}{Fore.WHITE} {comment}{Style.RESET_ALL}")
 
@@ -58,23 +62,30 @@ def mode_handler(xs):
     mode = xs[0]
     if mode == 'kind':
         cfg = {
-            'free_amd': 4,
-            'free_intel': 4
+            CF.free_amd: 4,
+            CF.free_intel: 4,
+            CF.query_amd: 0,
+            CF.query_intel: 0
         }
     elif mode == 'angry':
         cfg = {
-            'free_amd': 0,
-            'free_intel': 0
+            CF.free_amd: 0,
+            CF.free_intel: 0,
+            CF.query_amd: 4,
+            CF.query_intel: 4
         }
     elif mode == 'normal':
         cfg = {
-            'free_amd': 2,
-            'free_intel': 2
+            CF.free_amd: 2,
+            CF.free_intel: 2,
+            CF.query_amd: 0,
+            CF.query_intel: 0
         }
     else:
         print_failure(
             f'Mode {Back.BLACK}{Style.BRIGHT}{mode}{Style.RESET_ALL} does not exist')
         return
+    print_success(f"Set mode to {Style.BRIGHT}{Back.BLACK}{mode}{Style.RESET_ALL}")
     for k, v in cfg.items():
         set_param(k, v)
 
@@ -102,7 +113,7 @@ def points_handler(xs):
         points = Point.select().where(
             Point.status == Status.SUCCESS)
     else:
-        print_failure(f'Incorrect mode: {mode}')
+        print_failure(f'Incorrect mode: {Back.BLACK}{Style.BRIGHT}{mode}{Style.RESET_ALL}')
         return
     print(f'{"LEFT":10}| {"RIGHT":10}| {"STATUS":15}')
     print('-'*30)
