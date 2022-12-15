@@ -1,5 +1,5 @@
 """Module for working with the Irkutsk supercomputer(Matrosov)"""
-from typing import List
+from typing import List, Tuple
 from subprocess import run, PIPE
 import os
 from random import randint
@@ -24,7 +24,7 @@ class Matrosov(Cluster):
         return "Matrosov Cluster"
 
     def execute(self, command: str,
-                source_share: bool = False) -> tuple[str, str]:
+                source_share: bool = False) -> Tuple[str, str]:
         """Run unix command on cluster
 
         Args:
