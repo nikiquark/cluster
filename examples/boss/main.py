@@ -1,5 +1,5 @@
 from time import sleep
-from typing import Dict
+from typing import Dict, List
 from colorama import Fore
 import peewee
 from cluster import Matrosov
@@ -25,7 +25,7 @@ def name(left: float, right: float) -> str:
     return f"{int(left*100)}-{int(right*100)}"
 
 
-def unname(name: str) -> list[float]:
+def unname(name: str) -> List[float]:
     return [int(i)/100 for i in name.split('-')]
 
 
