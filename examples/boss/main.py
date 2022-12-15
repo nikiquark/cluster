@@ -1,10 +1,11 @@
 from time import sleep
+from typing import Dict
+from colorama import Fore
 import peewee
-from models import Point, Status, CF, Config
 from cluster import Matrosov
 from cluster.matrosov.models import Segment
 from cluster.matrosov import Commands
-from colorama import Fore
+from models import Point, Status, CF, Config
 
 
 m = Matrosov()
@@ -24,7 +25,7 @@ def unname(name: str) -> list[float]:
     return [int(i)/100 for i in name.split('-')]
 
 
-def load_cfg() -> dict[str, int]:
+def load_cfg() -> Dict[str, int]:
     return {i.key: i.value for i in Config.select()}
 
 

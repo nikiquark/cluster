@@ -1,9 +1,9 @@
-
 import sys
+from typing import List
 from colorama import Fore, Style, Back
 from peewee import DoesNotExist
-
 from models import Config, CF, Point, Status
+
 
 settings = [i for i in dir(CF) if not i.startswith('__')]
 
@@ -50,7 +50,7 @@ def help_handler(xs):
         print(f"{Fore.CYAN}{i:<15}{Fore.GREEN}{val:5}{Fore.WHITE} {comment}{Style.RESET_ALL}")
 
 
-def set_handler(xs: list[str]):
+def set_handler(xs: List[str]):
     assert len(xs) == 2
     key, value = xs
     assert value.isnumeric()
