@@ -133,13 +133,15 @@ if __name__ == '__main__':
         # Query job (angry mode)
         query_amd = [i.jobname for i in m.amd.jobs if i.status == 'Q']
         query_intel = [i.jobname for i in m.intel.jobs if i.status == 'Q']
-        if len(query_amd) < cfg[CF.query_amd]:
+        n_amd = cfg[CF.query_amd] - len(query_amd)
+        n_intel = cfg[CF.query_intel] - len(query_intel)
+        for i in range(n_amd):
             try:
                 aspt = Point.get(Point.status == Status.PENDING)
                 add_job(aspt, 'amd')
             except peewee.DoesNotExist:
                 pass
-        if len(query_intel) < cfg[CF.query_intel]:
+        for i in range(n_amd):
             try:
                 aspt = Point.get(Point.status == Status.PENDING)
                 add_job(aspt, 'intel')
