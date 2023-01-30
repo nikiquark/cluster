@@ -1,5 +1,5 @@
 from peewee import SqliteDatabase, Model, DoubleField, IntegerField, CharField
-DB_NAME = 'db.sqlite'
+DB_NAME = '/home/okhotnikov/active/awake/section2-density-grid/cluster/examples/boss/db.sqlite'
 
 db = SqliteDatabase(DB_NAME)
 
@@ -36,6 +36,8 @@ class CF:
     free_intel = 'free_intel'
     query_amd = 'query_amd'
     query_intel = 'query_intel'
+    max_intel = 'max_intel'
+    max_amd = 'max_amd'
 
 
 if __name__ == "__main__":
@@ -54,6 +56,9 @@ if __name__ == "__main__":
     Config.create(key=CF.free_intel, value=2)
     Config.create(key=CF.query_intel, value=0)
     Config.create(key=CF.query_amd, value=0)
+    Config.create(key=CF.max_intel, value=7)
+    Config.create(key=CF.max_amd, value=0)
+    
 
 
 

@@ -22,7 +22,7 @@ def print_success(data):
 
 
 def name(left: float, right: float) -> str:
-    return f"{int(left*100)}-{int(right*100)}"
+    return f"{round(left*100)}-{round(right*100)}"
 
 
 def unname(name: str) -> List[float]:
@@ -44,9 +44,9 @@ def add_job(point: Point, segment: str) -> None:
     m.execute(f'mkdir {jobdir}')
 
     # copy files for job
-    m.execute(f'cp {templatedir}beamfile.origin_2.bin {jobdir}beamfile.bin')
-    m.execute(f'cp {templatedir}beamfile.origin.bit {jobdir}beamfile.bit')
-    m.execute(f'cp {templatedir}lcode.origin_2.cfg {jobdir}lcode.cfg')
+    m.execute(f'cp {templatedir}beamfile.bin {jobdir}beamfile.bin')
+    m.execute(f'cp {templatedir}beamfile.bit {jobdir}beamfile.bit')
+    m.execute(f'cp {templatedir}lcode.cfg {jobdir}lcode.cfg')
 
     # make plasma-zshape
     plasma_zshape = f'plasma-zshape = """\n\
@@ -72,14 +72,16 @@ def add_job(point: Point, segment: str) -> None:
 
 def check_success(jobname):
     jobdir = workdir + f'{jobname}/'
-    files = m.run(Commands.ls)
+    #files = m.run(Commands.ls)
+    files, _ = m.execute(f'ls {jobdir}'); files = files.split('\n')
     if 'success' not in files:
         print_failure(f"Problem with job: {jobname}")
-        m.execute(f'rm -r {workdir}{jobdir}')
-        l, r = unname(jobname)
-        cur_point = Point.select().where(Point.l == l).where(Point.r == r).get()
-        cur_point.status = Status.PENDING
-        cur_point.save()
+        m.execute(f'mv {workdir}{jobdir} {workdir}fail/{jobdir}')
+        #m.submit_job(jobdir)
+        # l, r = unname(jobname)
+        # cur_point = Point.select().where(Point.l == l).where(Point.r == r).get()
+        # cur_point.status = Status.PENDING
+        # cur_point.save()
         return True
     return False
 
@@ -91,7 +93,10 @@ if __name__ == '__main__':
 
         # update cluster
         m.update()
-
+        active_amd = [i.jobname for i in m.amd.jobs if i.status == 'R']
+        active_intel = [i.jobname for i in m.intel.jobs if i.status == 'R']
+        # query_amd = [i.jobname for i in m.amd.jobs if i.status == 'Q']
+        # query_intel = [i.jobname for i in m.intel.jobs if i.status == 'Q']
         # check success jobs
         active_jobs = [i.jobname for i in m.amd.jobs +
                     m.intel.jobs if i.status != 'C']
@@ -114,6 +119,8 @@ if __name__ == '__main__':
 
         n_intel = (free_intel - cfg[CF.free_intel]) // cfg[CF.nodes_per_calc]
         n_amd = (free_amd - cfg[CF.free_amd]) // cfg[CF.nodes_per_calc]
+        n_intel = min(n_intel, cfg[CF.max_intel] - len(active_intel))
+        n_amd = min(n_amd, cfg[CF.max_amd] - len(active_amd))
 
         for _ in range(n_intel):
             # add job to intel
